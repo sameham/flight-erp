@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import '../data/mock_repository.dart';
+import '../data/app_repository.dart';
 import '../models/booking_model.dart';
-import '../models/finance_model.dart';
 import '../theme/app_theme.dart';
 
 final _money = NumberFormat('#,##0', 'ar');
@@ -71,7 +70,10 @@ class _AddBookingScreenState extends State<AddBookingScreen> {
     if (picked != null) setState(() => _flightDate = picked);
   }
 
-  void _save() {
+  final _repo = AppRepository();
+  bool _saving = false;
+
+  Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_fromCity == null || _toCity == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -93,13 +95,10 @@ class _AddBookingScreenState extends State<AddBookingScreen> {
       return;
     }
 
-    final bookingId = 'b${DateTime.now().millisecondsSinceEpoch}';
-
-    // إنشاء الحجز
-    MockRepository.bookings.insert(
-      0,
-      BookingModel(
-        id: bookingId,
+    setState(() => _saving = true);
+    try {
+      // الحفظ في قاعدة البيانات (PostgreSQL عبر Supabase)
+      await _repo.addBooking(
         passengerName: _nameCtrl.text.trim(),
         pnr: _pnrCtrl.text.trim().toUpperCase(),
         ticketNumber: _ticketCtrl.text.trim(),
@@ -107,22 +106,21 @@ class _AddBookingScreenState extends State<AddBookingScreen> {
         arrivalCity: _toCity!,
         flightDate: _flightDate!,
         status: _status,
-      ),
-    );
-
-    // إنشاء السجل المالي المرتبط
-    MockRepository.finances.add(
-      FinanceModel(
-        id: 'f$bookingId',
-        bookingId: bookingId,
         purchasePrice: _purchase,
         sellingPrice: _selling,
         paidAmount: _paid,
-      ),
-    );
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل الحفظ: تحقق من الاتصال')),
+        );
+      }
+      return;
+    }
 
-    // الرجوع للداشبورد مع إشارة نجاح
-    Navigator.pop(context, true);
+    if (mounted) Navigator.pop(context, true);
   }
 
   @override
@@ -282,10 +280,15 @@ class _AddBookingScreenState extends State<AddBookingScreen> {
 
             // زر الحفظ
             FilledButton.icon(
-              onPressed: _save,
-              icon: const Icon(Icons.check_rounded),
-              label: const Text('حفظ الحجز',
-                  style: TextStyle(
+              onPressed: _saving ? null : _save,
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18, height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.check_rounded),
+              label: Text(_saving ? 'جارٍ الحفظ...' : 'حفظ الحجز',
+                  style: const TextStyle(
                       fontWeight: FontWeight.bold, fontSize: 15)),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.navy,

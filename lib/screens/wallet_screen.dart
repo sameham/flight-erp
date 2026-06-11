@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import '../data/mock_repository.dart';
+import '../data/app_repository.dart';
 import '../models/transaction_model.dart';
 import '../theme/app_theme.dart';
 
@@ -16,9 +16,30 @@ class WalletScreen extends StatefulWidget {
 }
 
 class _WalletScreenState extends State<WalletScreen> {
+  final _repo = AppRepository();
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
   TransactionType _selectedType = TransactionType.receiveFromCustomer;
+
+  List<TransactionModel> _transactions = [];
+  bool _loading = true;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final list = await _repo.fetchTransactions();
+      if (mounted) setState(() { _transactions = list; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -27,8 +48,8 @@ class _WalletScreenState extends State<WalletScreen> {
     super.dispose();
   }
 
-  /// تسجيل حركة مالية جديدة
-  void _submit() {
+  /// تسجيل حركة مالية جديدة في قاعدة البيانات
+  Future<void> _submit() async {
     final amount = double.tryParse(_amountController.text.trim());
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -37,26 +58,32 @@ class _WalletScreenState extends State<WalletScreen> {
       return;
     }
 
-    setState(() {
-      MockRepository.transactions.insert(
-        0,
-        TransactionModel(
-          id: 't${DateTime.now().millisecondsSinceEpoch}',
-          type: _selectedType,
-          amount: amount,
-          note: _noteController.text.trim().isEmpty
-              ? null
-              : _noteController.text.trim(),
-          createdAt: DateTime.now(),
-        ),
+    setState(() => _saving = true);
+    try {
+      await _repo.addTransaction(
+        type: _selectedType,
+        amount: amount,
+        note: _noteController.text.trim().isEmpty
+            ? null
+            : _noteController.text.trim(),
       );
       _amountController.clear();
       _noteController.clear();
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم تسجيل الحركة بنجاح ✓')),
-    );
+      await _load(); // إعادة تحميل القائمة من القاعدة
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تسجيل الحركة بنجاح ✓')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('فشل التسجيل: تحقق من الاتصال')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -128,7 +155,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
-                    onPressed: _submit,
+                    onPressed: _saving ? null : _submit,
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.navy,
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -136,8 +163,8 @@ class _WalletScreenState extends State<WalletScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text('تسجيل الحركة',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(_saving ? 'جارٍ التسجيل...' : 'تسجيل الحركة',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -155,7 +182,12 @@ class _WalletScreenState extends State<WalletScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          if (MockRepository.transactions.isEmpty)
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.only(top: 30),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_transactions.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 30),
               child: Center(
@@ -164,8 +196,7 @@ class _WalletScreenState extends State<WalletScreen> {
               ),
             )
           else
-            ...MockRepository.transactions
-                .map((t) => _TransactionTile(tx: t)),
+            ..._transactions.map((t) => _TransactionTile(tx: t)),
         ],
       ),
     );

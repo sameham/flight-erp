@@ -1,11 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'config/supabase_config.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/refunds_screen.dart';
 import 'screens/wallet_screen.dart';
 import 'theme/app_theme.dart';
 
-void main() => runApp(const FlightErpApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // تهيئة الاتصال بـ Supabase
+  await Supabase.initialize(
+    url: SupabaseConfig.url,
+    anonKey: SupabaseConfig.anonKey,
+  );
+
+  runApp(const FlightErpApp());
+}
 
 class FlightErpApp extends StatelessWidget {
   const FlightErpApp({super.key});

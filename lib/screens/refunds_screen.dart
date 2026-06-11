@@ -1,31 +1,80 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../data/mock_repository.dart';
+import '../data/app_repository.dart';
 import '../models/refund_model.dart';
 import '../theme/app_theme.dart';
 
 final _money = NumberFormat('#,##0', 'ar');
 
-/// شاشة المرتجعات - Refunds Screen
-class RefundsScreen extends StatelessWidget {
+/// شاشة المرتجعات - Refunds Screen (متصلة بـ Supabase)
+class RefundsScreen extends StatefulWidget {
   const RefundsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final refunds = MockRepository.refunds;
+  State<RefundsScreen> createState() => _RefundsScreenState();
+}
 
+class _RefundsScreenState extends State<RefundsScreen> {
+  final _repo = AppRepository();
+  late Future<List<RefundModel>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _repo.fetchRefunds();
+  }
+
+  Future<void> _reload() async {
+    setState(() => _future = _repo.fetchRefunds());
+    await _future;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('المرتجعات')),
-      body: refunds.isEmpty
-          ? const Center(
+      body: FutureBuilder<List<RefundModel>>(
+        future: _future,
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snap.hasError) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('تعذر تحميل المرتجعات',
+                      style: TextStyle(color: AppColors.textMuted)),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: _reload,
+                    style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.navy),
+                    child: const Text('إعادة المحاولة'),
+                  ),
+                ],
+              ),
+            );
+          }
+          final refunds = snap.data ?? [];
+          if (refunds.isEmpty) {
+            return const Center(
               child: Text('لا توجد مرتجعات حالياً',
                   style: TextStyle(color: AppColors.textMuted)),
-            )
-          : ListView.builder(
+            );
+          }
+          return RefreshIndicator(
+            onRefresh: _reload,
+            child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: refunds.length,
-              itemBuilder: (context, i) => _RefundCard(refund: refunds[i]),
+              itemBuilder: (context, i) =>
+                  _RefundCard(refund: refunds[i]),
             ),
+          );
+        },
+      ),
     );
   }
 }
