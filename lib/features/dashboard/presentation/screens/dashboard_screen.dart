@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../data/repositories/app_repository.dart';
+import '../../../bookings/data/repositories/app_repository.dart';
 import '../../../../core/theme/app_theme.dart';
 
 final _money = NumberFormat('#,##0', 'ar');
