@@ -15,11 +15,7 @@ class AppRepository {
     DateTime? fromDate,
     DateTime? toDate,
   }) async {
-    var query = _db.from('bookings').select('''
-      *, 
-      customers(name, phone),
-      suppliers(name)
-    ''');
+    var query = _db.from('bookings').select('*');
 
     if (statusFilter != null && statusFilter.isNotEmpty) {
       query = query.eq('booking_status', statusFilter);
@@ -35,7 +31,6 @@ class AppRepository {
 
     var result = rows.map<BookingModel>((r) => BookingModel.fromJson(r)).toList();
 
-    // البحث النصي محلياً (PNR / الاسم / رقم التذكرة)
     if (searchQuery != null && searchQuery.isNotEmpty) {
       final q = searchQuery.toLowerCase();
       result = result.where((b) =>
@@ -49,9 +44,8 @@ class AppRepository {
   }
 
   Future<BookingModel?> fetchBookingById(String id) async {
-    final row = await _db.from('bookings').select('''
-      *, customers(name, phone), suppliers(name)
-    ''').eq('id', id).maybeSingle();
+    final row = await _db.from('bookings')
+        .select('*').eq('id', id).maybeSingle();
     return row != null ? BookingModel.fromJson(row) : null;
   }
 

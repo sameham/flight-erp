@@ -128,7 +128,7 @@ class _BookingDetailScreenState extends State<BookingDetailScreen> {
         builder: (_) => AddRefundScreen(booking: _booking!),
       ),
     );
-    if (saved == true) _load();
+    if (saved == true && mounted) _load();
   }
 
   @override

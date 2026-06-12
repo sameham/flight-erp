@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../bookings/data/repositories/app_repository.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -111,28 +112,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     label: 'حجز جديد',
                     icon: Icons.add_circle_outline_rounded,
                     color: AppColors.primary,
-                    onTap: () => Navigator.pushNamed(context, '/bookings/add'),
+                    onTap: () => context.go('/bookings/add'),
                   )),
                   const SizedBox(width: 10),
                   Expanded(child: _QuickAction(
                     label: 'كل الحجوزات',
                     icon: Icons.list_alt_rounded,
                     color: AppColors.info,
-                    onTap: () => Navigator.pushNamed(context, '/bookings'),
+                    onTap: () => context.go('/bookings'),
                   )),
                   const SizedBox(width: 10),
                   Expanded(child: _QuickAction(
                     label: 'المرتجعات',
                     icon: Icons.replay_rounded,
                     color: AppColors.warning,
-                    onTap: () => Navigator.pushNamed(context, '/refunds'),
+                    onTap: () => context.go('/refunds'),
                   )),
                   const SizedBox(width: 10),
                   Expanded(child: _QuickAction(
                     label: 'دفتر الأستاذ',
                     icon: Icons.account_balance_wallet_outlined,
                     color: AppColors.success,
-                    onTap: () => Navigator.pushNamed(context, '/wallet'),
+                    onTap: () => context.go('/wallet'),
                   )),
                 ]),
               ],

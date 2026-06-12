@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../data/models/booking_model.dart';
 import '../../data/repositories/app_repository.dart';
@@ -126,10 +127,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
         label: const Text('حجز جديد',
             style: TextStyle(fontWeight: FontWeight.bold)),
         onPressed: () async {
-          final saved = await Navigator.push<bool>(
-            context,
-            MaterialPageRoute(builder: (_) => const AddBookingScreen()),
-          );
+          final saved = await context.push<bool>('/bookings/add');
           if (saved == true) _load();
         },
       ),
@@ -146,13 +144,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
                           _BookingListTile(
                             booking: _bookings[i],
                             onTap: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => BookingDetailScreen(
-                                    bookingId: _bookings[i].id),
-                                ),
-                              );
+                              await context.push('/bookings/\${_bookings[i].id}');
                               _load();
                             },
                           ),

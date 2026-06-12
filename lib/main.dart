@@ -9,6 +9,7 @@ import 'features/bookings/presentation/screens/bookings_screen.dart';
 import 'features/bookings/presentation/screens/add_booking_screen.dart';
 import 'features/bookings/presentation/screens/booking_detail_screen.dart';
 import 'features/refunds/presentation/screens/refunds_screen.dart';
+import 'features/refunds/presentation/screens/add_refund_screen.dart';
 import 'features/wallet/presentation/screens/wallet_screen.dart';
 
 Future<void> main() async {
@@ -39,6 +40,15 @@ final _router = GoRouter(
                 path: ':id',
                 builder: (c, s) => BookingDetailScreen(
                     bookingId: s.pathParameters['id']!),
+                routes: [
+                  GoRoute(
+                    path: 'refund',
+                    builder: (c, s) {
+                      // سيتم تمرير الحجز من الشاشة السابقة
+                      return const SizedBox();
+                    },
+                  ),
+                ],
               ),
             ],
           ),
