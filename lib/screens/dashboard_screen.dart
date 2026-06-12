@@ -89,6 +89,103 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return sum;
   }
 
+  /// فتح حوار طلب الاسترداد لحجز معين
+  Future<void> _requestRefund(BookingModel booking) async {
+    final finance = _finances[booking.id];
+    final amountCtrl = TextEditingController(
+      text: finance?.sellingPrice.toStringAsFixed(0) ?? '',
+    );
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        title: const Text('طلب استرداد',
+            style: TextStyle(
+                color: AppColors.navy, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'المسافر: ${booking.passengerName}\nتذكرة: ${booking.ticketNumber}',
+              style: const TextStyle(
+                  fontSize: 13, color: AppColors.textMuted, height: 1.6),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: amountCtrl,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'المبلغ المسترد (ج.م)',
+                filled: true,
+                fillColor: AppColors.scaffoldBg,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'سيتم تحويل حالة الحجز إلى "مرتجع" وإنشاء طلب تتبع في شاشة المرتجعات.',
+              style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('إلغاء',
+                style: TextStyle(color: AppColors.textMuted)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.orange),
+            child: const Text('تأكيد الاسترداد'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final amount = double.tryParse(amountCtrl.text.trim());
+    if (amount == null || amount <= 0) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('المبلغ غير صحيح')),
+        );
+      }
+      return;
+    }
+
+    try {
+      await _repo.addRefund(
+        bookingId: booking.id,
+        customerName: booking.passengerName,
+        ticketNumber: booking.ticketNumber,
+        refundAmount: amount,
+      );
+      await _load(); // تحديث الداشبورد بالكامل
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('تم إنشاء طلب الاسترداد ✓ تابعه من شاشة المرتجعات')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('فشل إنشاء الطلب: تحقق من الاتصال')),
+        );
+      }
+    }
+  }
+
   List<BookingModel> get _filteredBookings {
     final now = DateTime.now();
     switch (_filter) {
@@ -239,6 +336,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           (b) => BookingCard(
                             booking: b,
                             finance: _finances[b.id],
+                            onRequestRefund: () => _requestRefund(b),
                           ),
                         ),
                     ],

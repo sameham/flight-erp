@@ -11,7 +11,21 @@ class BookingCard extends StatelessWidget {
   final BookingModel booking;
   final FinanceModel? finance;
 
-  const BookingCard({super.key, required this.booking, this.finance});
+  /// يُستدعى عند الضغط على "طلب استرداد" (يظهر الزر فقط لو الكولباك موجود)
+  final VoidCallback? onRequestRefund;
+
+  const BookingCard({
+    super.key,
+    required this.booking,
+    this.finance,
+    this.onRequestRefund,
+  });
+
+  /// هل يمكن طلب استرداد لهذا الحجز؟
+  bool get _canRefund =>
+      booking.status != BookingStatus.refunded &&
+      booking.status != BookingStatus.cancelled &&
+      onRequestRefund != null;
 
   /// لون الحالة حسب نوعها
   Color get _statusColor {
@@ -147,6 +161,24 @@ class BookingCard extends StatelessWidget {
                 color: AppColors.green,
                 bold: true,
               ),
+              // زر طلب الاسترداد
+              if (_canRefund)
+                TextButton.icon(
+                  onPressed: onRequestRefund,
+                  icon: const Icon(Icons.replay_rounded, size: 16),
+                  label: const Text('استرداد',
+                      style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w700)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.orange,
+                    backgroundColor: AppColors.orange.withOpacity(0.1),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
             ],
           ),
         ],
